@@ -1,0 +1,33 @@
+#协议说明文件
+
+.chat_msg {
+    speaker_uuid: int
+    speaker_name: string
+    msg: string
+    timestamp: int
+}
+
+
+c2gs_login {
+    pid: int
+}
+
+gs2c_loginsuc {
+    name: string
+}
+
+gs2c_world_chat_history {
+    history_msgs: [chat_msg]
+}
+
+c2gs_usr_world_chat {
+    msg: string
+}
+
+gs2c_usr_world_chat {
+    msg: chat_msg
+}
+
+c2gs_quit {
+
+}
