@@ -274,9 +274,7 @@ Skynet.start(function()
     Debug.print("====service GAMEGATE start====")
 end)
 ```
-首先看下CMD.open函数:<br>
-    socket = Socketdriver.listen(address, port) 将完成创建TCP socket -> bind -> listen的流程,并将包装过的逻辑层fd返回.<br>
-    Socketdriver.start(socket) 将对应的系统fd注册到epoll或kqueue中.<br>
+首先看下CMD.open函数:socket = Socketdriver.listen(address, port) 将完成创建TCP socket -> bind -> listen的流程,并将包装过的逻辑层fd返回.Socketdriver.start(socket) 将对应的系统fd注册到epoll或kqueue中.<br>
 服务在初始化的时候调用Skynet.register_protocol 注册了"socket"类型消息的unpack和dispatch方法,网络线程读取到某系统fd的网络流后会将其以"socket"类型的消息发给fd对应的注册服务.
 服务收到"socket"消息后，通过unpack方法调用Netpack.filter进行网络流的解析
 当有客户端connect login_port,网络线程完成accept后,会将新建socket包装过的逻辑层fd返回,这里会将消息传递给MSG.open函数做处理.
