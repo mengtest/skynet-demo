@@ -282,5 +282,5 @@ end)
 当有客户端connect login_port,网络线程完成accept后,会将新建socket包装过的逻辑层fd返回,这里会将消息传递给MSG.open函数做处理.
 accept的fd接收到网络流会以消息传递给MSG.data(收到的流长度正好为2字节包头指定长度)和MSG.more(收到的流长度大于2字节包头指定长度),最后都会将完整包交给dispatch_msg函数处理.
 同理,accept的fd断开连接时,会被MSG.close处理,产生错误时,会被MSG.error处理.
-下面解析下完整流程:
-![](https://github.com/xingshuo/skynet-demo/flowchart.png)
+下面解析下完整流程:<br>
+![flowchart](https://github.com/xingshuo/skynet-demo/flowchart.png)
