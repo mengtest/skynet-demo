@@ -91,7 +91,7 @@ end
 ```
 BcApi.init 启动了一个世界频道广播服务和一个通用广播服，当玩家登录成功后，会把其pid与socket在逻辑层对应fd的映射关系通过register_fd注册到所有广播服务,
 下线的时候通过unregister_fd从所有广播服务删除其映射关系.这样做的目的是无论在哪个服务想要给客户端发消息，只需将玩家的pid和消息内容发往指定的广播服，该广播服务会自动将消息发送给玩家，[lualib/net.lua](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua)
-里封装了4个接口用来处理给玩家发包的功能. demo用json作为CS通信协议的解决方案,该过程也被封装在lualib/net.lua的pack和unpack函数中,common/protocol文件是协议的内容说明.
+里封装了4个接口用来处理给玩家发包的功能. demo用json作为CS通信协议的解决方案,该过程也被封装在lualib/net.lua的pack和unpack函数中,[common/protocol文件](https://github.com/xingshuo/skynet-demo/blob/master/common/protocol)是协议的内容说明.
 下面看下broadcast服务启动文件
 ```lua
 #service/broadcast.lua
@@ -153,10 +153,10 @@ Skynet.newservice("database") 启动了一个简陋的数据库服务，它只�
 
 local gate = Skynet.newservice("gamegate") 启动了网关服务gamegate,它的实现参考了[这里](https://github.com/cloudwu/skynet/wiki/GateServer)
 
-local login_port = tonumber(Skynet.getenv("login_port"))
-Skynet.send(gate, "lua", "open", {port = login_port})
+local login_port = tonumber(Skynet.getenv("login_port"))<br>
+Skynet.send(gate, "lua", "open", {port = login_port})<br>
 这两行实现了网关服务对本地config文件中配置的login_port端口的监听,下面具体分析下gamegate的实现
-'''lua
+```lua
 local Skynet = require "skynet"
 local Netpack = require "skynet.netpack"
 local Socketdriver = require "skynet.socketdriver"
@@ -273,7 +273,7 @@ Skynet.start(function()
     Skynet.register("GAMEGATE")
     Debug.print("====service GAMEGATE start====")
 end)
-'''
+```
 首先看下CMD.open函数,
     socket = Socketdriver.listen(address, port) 将完成创建TCP socket -> bind -> listen的流程,并将包装过的逻辑层fd返回.
     Socketdriver.start(socket) 将对应的系统fd注册到epoll或kqueue中.
