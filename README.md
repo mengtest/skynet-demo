@@ -4,9 +4,10 @@
 * Skynet 官方资料:<br>
         https://github.com/cloudwu/skynet/wiki<br>
         https://blog.codingnow.com/eo/skynet<br>
-        https://github.com/cloudwu/skynet/issues
+        https://github.com/cloudwu/skynet/issues<br>
 * Skynet 部分三方资料:<br>
         http://blog.csdn.net/linshuhe1/article/category/6860208<br>
+        http://www.cnblogs.com/Jackie-Snow/category/964885.html<br>
         http://forthxu.com/blog/skynet.html<br>
 ## 编译连接
 
@@ -333,6 +334,7 @@ local function dispatch_msg(fd, msg, sz)
 end
 ```
 易知网关收到包后,如果该连接已完成登录验证,则直接将消息发往其对应的agent服务,否则发送消息到登录中心去走上述验证流程<br>
-Skynet.newservice("chat") 启动了聊天服务,服务启动时会创建世界频道,最后调用Skynet.exit()注销自己.至此init服务的全部内容便分析完了.
+Skynet.newservice("chat") 启动了聊天服务,服务启动时会创建世界频道,管理聊天相关逻辑.<br>
+最后调用Skynet.exit()注销自己.至此init服务的全部内容便分析完了.<br>
 下面是完整流程图:<br>
 ![flowchart](https://github.com/xingshuo/skynet-demo/blob/master/flowchart.png)
