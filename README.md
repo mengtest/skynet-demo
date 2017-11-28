@@ -6,7 +6,8 @@
         https://blog.codingnow.com/eo/skynet<br>
         https://github.com/cloudwu/skynet/issues
 * Skynet 部分三方资料:<br>
-        http://blog.csdn.net/linshuhe1/article/category/6860208
+        http://blog.csdn.net/linshuhe1/article/category/6860208<br>
+        http://forthxu.com/blog/skynet.html<br>
 ## 编译连接
 
 ```
@@ -90,8 +91,8 @@ function M.unregister_fd(uuid)
 end
 ```
 BcApi.init 启动了一个世界频道广播服务和一个通用广播服，当玩家登录成功后，会把其pid与socket在逻辑层对应fd的映射关系通过register_fd注册到所有广播服务,
-下线的时候通过unregister_fd从所有广播服务删除其映射关系.这样做的目的是无论在哪个服务想要给客户端发消息，只需将玩家的pid和消息内容发往指定的广播服，该广播服务会自动将消息发送给玩家，[lualib/net.lua](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua)
-里封装了4个接口用来处理给玩家发包的功能. demo用json作为CS通信协议的解决方案,该过程也被封装在lualib/net.lua的pack和unpack函数中,[common/protocol文件](https://github.com/xingshuo/skynet-demo/blob/master/common/protocol)是协议的内容说明.
+下线的时候通过unregister_fd从所有广播服务删除其映射关系.这样做的目的是无论在哪个服务想要给客户端发消息，只需将玩家的pid和消息内容发往指定的广播服，该广播服务会自动将消息发送给玩家，[lualib/net.lua](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua#L27)
+里封装了4个接口用来处理给玩家发包的功能. demo用json作为CS通信协议的解决方案,该过程也被封装在lualib/net.lua的[pack和unpack函数](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua#L9)中,[common/protocol文件](https://github.com/xingshuo/skynet-demo/blob/master/common/protocol)是协议的内容说明.
 下面看下broadcast服务启动文件
 ```lua
 #service/broadcast.lua
@@ -118,6 +119,7 @@ Skynet.register(service_name) 这一行把服务启动时接收到的参数servi
 既可以填目标服务调用skynet.self()返回的整形handle，也可以填Skynet.register注册的字符串.
 
 ```lua
+#agent/api.lua
 local Skynet = require "skynet"
 local Player = require "agent.player"
 
@@ -157,6 +159,7 @@ local login_port = tonumber(Skynet.getenv("login_port"))<br>
 Skynet.send(gate, "lua", "open", {port = login_port})<br>
 这两行实现了网关服务对本地config文件中配置的login_port端口的监听,下面具体分析下gamegate的实现
 ```lua
+#service/gamegate.lua
 local Skynet = require "skynet"
 local Netpack = require "skynet.netpack"
 local Socketdriver = require "skynet.socketdriver"
@@ -181,28 +184,7 @@ function CMD.close()
     Socketdriver.close(socket)
 end
 
-function CMD.loginsuc(source, fd, mArgs)
-    local conn = Connection.get_conn(fd)
-    if not conn then
-        Debug.print("login error:no conn",fd,Utils.table_str(mArgs))
-        return
-    end
-    if conn.m_Agent then
-        Debug.print("login error:re login",fd,Utils.table_str(mArgs))
-        return
-    end
-    local oldcon = Connection.get_pid_conn(mArgs.pid)
-    if oldcon then
-        Connection.del_conn(oldcon.m_fd)
-    end
-    conn:loginsuc(mArgs.agent, mArgs.pid)
-    Skynet.send(conn.m_Agent, "lua", "start", mArgs.pid, mArgs)
-    Debug.print("login suc",fd,Utils.table_str(mArgs))
-end
-
-function CMD.quit(source, fd)
-    Connection.del_conn(fd)
-end
+ #Omitted some code here...
 
 local MSG = {}
 
@@ -277,8 +259,80 @@ end)
 首先看下CMD.open函数:socket = Socketdriver.listen(address, port) 将完成创建TCP socket -> bind -> listen的流程,并将包装过的逻辑层fd返回.Socketdriver.start(socket) 将对应的系统fd注册到epoll或kqueue中.<br>
 服务在初始化的时候调用Skynet.register_protocol 注册了"socket"类型消息的unpack和dispatch方法,网络线程读取到某系统fd的网络流后会将其以"socket"类型的消息发给fd对应的注册服务.
 服务收到"socket"消息后，通过unpack方法调用Netpack.filter进行网络流的解析
-当有客户端connect login_port,网络线程完成accept后,会将新建socket包装过的逻辑层fd返回,这里会将消息传递给MSG.open函数做处理.
+当有客户端connect login_port,网络线程完成accept后,会将新建socket包装过的逻辑层fd返回,这里会将消息传递给MSG.open函数做处理,这里同样会把新创建的fd注册到epoll或kqueue中,同时调用Connection.new_conn(fd)创建一个连接对象.
 accept的fd接收到网络流会以消息传递给MSG.data(收到的流长度正好为2字节包头指定长度)和MSG.more(收到的流长度大于2字节包头指定长度),最后都会将完整包交给dispatch_msg函数处理.
 同理,accept的fd断开连接时,会被MSG.close处理,产生错误时,会被MSG.error处理.
+```lua
+#login/command.lua
+local Skynet = require "skynet"
+local Utils = require "lualib.utils"
+local Net = require "lualib.net"
+local AgentApi = require "agent.api"
+
+local M = {}
+
+function M.unpack(fd, msg, sz)
+    local proto,param = Net.unpack(msg, sz)
+    if proto == "c2gs_login" then
+        local pid = param.pid
+        local name
+        local is_new_role = false
+        local mdb = Skynet.call("DB", "lua", "query_usr_data", pid)
+        if mdb then
+            name = mdb.name
+        else
+            name = Utils.random_name()
+            is_new_role = true
+            Skynet.send("DB", "lua", "set_usr_data", pid, {name = name, create_time = GetSecond()})
+        end
+        local agent = AgentApi.get_user_agent(pid)
+        local mArgs = {pid = pid, agent = agent, name = name, fd = fd, is_new_role = is_new_role}
+        Skynet.send("GAMEGATE", "lua", "loginsuc", fd, mArgs)
+    end
+end
+
+return M
+```
+Skynet.newservice("gamelogin") 启动了登录中心服务,它的主要作用是sdk验证(这里没有这部分),去数据库加载玩家数据(实际应用中可能是去数据中心拉取账号下角色信息),<br>
+并根据玩家pid分配一个agent服,然后发送"loginsuc"的命令给网关服务,下面看下loginsuc的处理
+```lua
+#service/gamegate.lua
+function CMD.loginsuc(source, fd, mArgs)
+    local conn = Connection.get_conn(fd)
+    if not conn then
+        Debug.print("login error:no conn",fd,Utils.table_str(mArgs))
+        return
+    end
+    if conn.m_Agent then
+        Debug.print("login error:re login",fd,Utils.table_str(mArgs))
+        return
+    end
+    local oldcon = Connection.get_pid_conn(mArgs.pid)
+    if oldcon then --已经登录的直接踢下线
+        Connection.del_conn(oldcon.m_fd)
+    end
+    conn:loginsuc(mArgs.agent, mArgs.pid)
+    Skynet.send(conn.m_Agent, "lua", "start", mArgs.pid, mArgs)
+    Debug.print("login suc",fd,Utils.table_str(mArgs))
+end
+```
+这里会获取CS connect时,Connection.new_conn建立的连接对象,并把pid和Agent的信息通过conn:loginsuc(mArgs.agent, mArgs.pid)记录到连接对象中,到此,玩家的登录验证就完成了.<br>
+Skynet.send(conn.m_Agent, "lua", "start", mArgs.pid, mArgs) 将正式登录的消息发往对应agent服,根据玩家数据mArgs创建玩家对象,并向聊天服务注册自己的信息<br>
+再看下dispatch_msg接口的实现
+```lua
+local function dispatch_msg(fd, msg, sz)
+    local conn = Connection.get_conn(fd)
+    if not conn then
+        return
+    end
+    if conn.m_Agent then
+        Skynet.send(conn.m_Agent, "lua", "unpack", conn.m_Pid, msg, sz)
+    else
+        Skynet.send("GAMELOGIN", "lua", "unpack", fd, msg, sz)
+    end
+end
+```
+易知网关收到包后,如果该连接已完成登录验证,则直接将消息发往其对应的agent服务,否则发送消息到登录中心去走上述验证流程<br>
+Skynet.newservice("chat") 启动了聊天服务,服务启动时会创建世界频道,最后调用Skynet.exit()注销自己.至此init服务的全部内容便分析完了.
 下面是完整流程图:<br>
 ![flowchart](https://github.com/xingshuo/skynet-demo/blob/master/flowchart.png)

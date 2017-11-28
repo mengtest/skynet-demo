@@ -33,7 +33,7 @@ function CMD.loginsuc(source, fd, mArgs)
         return
     end
     local oldcon = Connection.get_pid_conn(mArgs.pid)
-    if oldcon then
+    if oldcon then --已经登录的直接踢下线
         Connection.del_conn(oldcon.m_fd)
     end
     conn:loginsuc(mArgs.agent, mArgs.pid)
