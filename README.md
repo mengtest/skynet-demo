@@ -93,7 +93,7 @@ end
 ```
 BcApi.init 启动了一个世界频道广播服务和一个通用广播服，当玩家登录成功后，会把其pid与socket在逻辑层对应fd的映射关系通过register_fd注册到所有广播服务,
 下线的时候通过unregister_fd从所有广播服务删除其映射关系.这样做的目的是无论在哪个服务想要给客户端发消息，只需将玩家的pid和消息内容发往指定的广播服，该广播服务会自动将消息发送给玩家，[lualib/net.lua](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua#L27)
-里封装了4个接口用来处理给玩家发包的功能. demo用json作为CS通信协议的解决方案,该过程也被封装在lualib/net.lua的[pack和unpack函数](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua#L9)中,[common/protocol文件](https://github.com/xingshuo/skynet-demo/blob/master/common/protocol)是协议的内容说明.
+里封装了4个接口用来处理给玩家发包的功能. demo支持了json和sproto两种CS通信协议的解决方案,可以通过[common/pubdefines.lua](https://github.com/xingshuo/skynet-demo/blob/master/common/pubdefines.lua)文件配置,该过程也被封装在lualib/net.lua的[pack和unpack函数](https://github.com/xingshuo/skynet-demo/blob/master/server/lualib/net.lua#L9)中,[common/protocol文件](https://github.com/xingshuo/skynet-demo/blob/master/common/protocol)是协议的内容说明.
 下面看下broadcast服务启动文件
 ```lua
 #service/broadcast.lua

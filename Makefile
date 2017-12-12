@@ -30,7 +30,7 @@ build-skynet: | $(SKYNET_MAKEFILE)
 all: $(CLUALIB_TARGET)
 
 $(BUILD_CLIB_DIR)/cjson.so: $(3RD_DIR)/lua-cjson/Makefile
-	cd $(3RD_DIR)/lua-cjson && make LUA_INCLUDE_DIR=$(TOP)/$(SKYNET_LUA_PATH)
+	cd $(3RD_DIR)/lua-cjson && make LUA_INCLUDE_DIR=$(SKYNET_LUA_PATH)
 	mv $(3RD_DIR)/lua-cjson/cjson.so $@
 
 $(BUILD_CLIB_DIR)/lclient.so: client/lua-client.c
