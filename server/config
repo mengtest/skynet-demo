@@ -14,7 +14,7 @@ start = "init"
 luaservice = "./server/service/?.lua;" .. "./service/?.lua"
 
 -- 搜索路径
-lua_path = "./server/?.lua;" .. "./lualib/?.lua"
+lua_path = "./server/?.lua;" .. "./lualib/?.lua;" .. "../common/?.lua"
 lua_cpath = "../build/clib/?.so;" .. "./luaclib/?.so;" .. "./cservice/?.so"
 
 -- 提前preload一些东西
@@ -28,5 +28,7 @@ master = "127.0.0.1:2017"
 
 -- master节点专有
 standalone = "0.0.0.0:2017"
+
+sproto = "../build"
 
 AGENT_CNT = 10

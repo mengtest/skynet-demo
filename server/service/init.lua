@@ -1,9 +1,12 @@
 local Skynet = require "skynet"
 local BcApi = require "broadcast.api"
 local AgentApi = require "agent.api"
+local Sprotohandler = require "lualib.sprotohandler"
 
 local function __init__()
-    print("===========game_init begin=========",GetDate())
+    print("=======game_init begin=======  "..GetDate().." Protocol:"..GAME_CFG.protocol_type)
+    Sprotohandler.init(Skynet.getenv("sproto"))
+    
     BcApi.init()
     
     AgentApi.init()

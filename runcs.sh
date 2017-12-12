@@ -1,1 +1,1 @@
-cd client && python main.py $*
+cd client && ../skynet/3rd/lua/lua main.lua $*

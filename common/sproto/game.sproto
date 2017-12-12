@@ -1,0 +1,43 @@
+
+.ChatMsg {
+    speaker_uuid 0 : integer
+    speaker_name 1 : string
+    msg 2 : string
+    timestamp 3 : integer
+}
+
+c2gs_login 100 {
+    request {
+        pid 0 : integer
+    }
+}
+
+gs2c_loginsuc 101 {
+    request {
+        name 0 : string
+    }
+}
+
+gs2c_world_chat_history 102 {
+    request {
+        history_msgs 0 : *ChatMsg
+    }
+}
+
+c2gs_usr_world_chat 103 {
+    request {
+        msg 0 : string
+    }
+}
+
+gs2c_usr_world_chat 104 {
+    request {
+        msg 0 : ChatMsg
+    }
+}
+
+c2gs_quit 105 {
+    request {
+
+    }
+}

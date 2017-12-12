@@ -1,7 +1,6 @@
 local sformat = string.format
 
 local class_pool = {}
-setmetatable(class_pool, {__mode = "kv"})
 
 local function get_class(class_type)
     assert(class_pool[class_type], sformat("class_type<%s> not exists", class_type))

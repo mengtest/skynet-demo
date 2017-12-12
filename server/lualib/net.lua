@@ -1,5 +1,6 @@
 local Skynet = require "skynet"
 local Netpack = require "skynet.netpack"
+local Sprotohandler = require "lualib.sprotohandler"
 local Json = require "cjson"
 
 local PACK_FMT = '>s2'
@@ -7,11 +8,17 @@ local PACK_FMT = '>s2'
 local M = {}
 
 function M.pack(proto, param, packHead)
-    local data = {
-        ["proto"] = proto,
-        ["param"] = param,
-    }
-    local pkg = Json.encode(data)
+    local pkg
+    if IsSprotoCompression() then
+        pkg = Sprotohandler.encode(proto, param)
+    elseif IsJsonCompression() then
+        local data = {
+            ["proto"] = proto,
+            ["param"] = param,
+        }
+        pkg = Json.encode(data)
+    end
+    assert(pkg)
     if packHead then --tcp need, udp or websocket not
         pkg = string.pack(PACK_FMT, pkg)
     end
@@ -19,9 +26,15 @@ function M.pack(proto, param, packHead)
 end
 
 function M.unpack(msg, sz)
-    local s = Netpack.tostring(msg, sz)
-    local data = Json.decode(s)
-    return data["proto"],data["param"]
+    if IsSprotoCompression() then
+        local proto,param = Sprotohandler.decode(msg, sz)
+        return proto,param
+    elseif IsJsonCompression() then
+        local s = Netpack.tostring(msg, sz)
+        local data = Json.decode(s)
+        return data["proto"],data["param"]
+    end
+    assert(false)
 end
 
 function M.send_to_player(uuid, proto, param, bc_addr)
